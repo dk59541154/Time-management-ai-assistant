@@ -346,19 +346,55 @@
 </div>
 
 <script>
-/* ---------------- shared state (in-memory, demo only) ---------------- */
-let tasks = [
-  {id:1, title:"Finish hackathon problem statement review", deadline: offsetNow(2), importance:3, completed:false},
-  {id:2, title:"Pay electricity bill", deadline: offsetNow(20), importance:2, completed:false},
-  {id:3, title:"Reply to internship interview email", deadline: offsetNow(5), importance:3, completed:false},
-];
-let nextId = 4;
+/* ---------------- backend connection ---------------- */
+// Change this if your backend runs somewhere other than localhost:4000
+const API_BASE = 'http://localhost:4000/api';
 
-let habits = [
-  {name:"Review tasks every morning", history:[1,1,0,1,1,0,1]},
-  {name:"No new tasks after 9pm", history:[1,0,1,1,0,0,1]},
-  {name:"Inbox zero", history:[0,1,1,0,1,1,1]},
-];
+/* ---------------- shared state, now loaded from the backend ---------------- */
+let tasks = [];   // populated by loadTasks() on startup
+let habits = [];  // populated by loadHabits() on startup
+
+async function apiGet(path){
+  const res = await fetch(`${API_BASE}${path}`);
+  if(!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+  return res.json();
+}
+async function apiSend(path, method, body){
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers:{'Content-Type':'application/json'},
+    body: body!==undefined ? JSON.stringify(body) : undefined
+  });
+  if(!res.ok) throw new Error(`${method} ${path} failed: ${res.status}`);
+  if(res.status===204) return null;
+  return res.json();
+}
+
+async function loadTasks(){
+  try{
+    const rows = await apiGet('/tasks');
+    tasks = rows.map(t => ({...t, deadline: new Date(t.deadline)}));
+  }catch(err){
+    console.error('Could not reach backend for tasks, falling back to demo data.', err);
+    tasks = [
+      {id:1, title:"Finish hackathon problem statement review", deadline: offsetNow(2), importance:3, completed:false},
+      {id:2, title:"Pay electricity bill", deadline: offsetNow(20), importance:2, completed:false},
+      {id:3, title:"Reply to internship interview email", deadline: offsetNow(5), importance:3, completed:false},
+    ];
+  }
+}
+async function loadHabits(){
+  try{
+    habits = await apiGet('/habits');
+  }catch(err){
+    console.error('Could not reach backend for habits, falling back to demo data.', err);
+    habits = [
+      {name:"Review tasks every morning", history:[1,1,0,1,1,0,1]},
+      {name:"No new tasks after 9pm", history:[1,0,1,1,0,0,1]},
+      {name:"Inbox zero", history:[0,1,1,0,1,1,1]},
+    ];
+  }
+}
 
 function offsetNow(hours){
   let d = new Date(Date.now() + hours*3600*1000);
@@ -402,20 +438,35 @@ function urgencyTier(score){
   if(score>=20) return 'medium';
   return 'low';
 }
-function addTask(){
+async function addTask(){
   const title = document.getElementById('taskTitle').value.trim();
   const deadline = document.getElementById('taskDeadline').value;
   const importance = parseInt(document.getElementById('taskImportance').value);
   if(!title || !deadline){ alert('Add a title and deadline.'); return; }
-  tasks.push({id:nextId++, title, deadline:new Date(deadline), importance, completed:false});
+  try{
+    const saved = await apiSend('/tasks', 'POST', {
+      title, deadline: new Date(deadline).toISOString(), importance
+    });
+    tasks.push({...saved, deadline: new Date(saved.deadline)});
+  }catch(err){
+    console.error(err);
+    tasks.push({id:Date.now(), title, deadline:new Date(deadline), importance, completed:false});
+  }
   document.getElementById('taskTitle').value='';
   document.getElementById('taskDeadline').value='';
   renderAll();
 }
-function toggleComplete(id){
+async function toggleComplete(id){
   const t = tasks.find(t=>t.id===id);
-  if(t) t.completed = !t.completed;
+  if(!t) return;
+  const newVal = !t.completed;
+  t.completed = newVal; // update UI immediately
   renderAll();
+  try{
+    await apiSend(`/tasks/${id}`, 'PATCH', {completed:newVal});
+  }catch(err){
+    console.error('Failed to save completion to backend', err);
+  }
 }
 function renderTasks(){
   const list = document.getElementById('taskList');
@@ -511,9 +562,16 @@ function calcStreak(history){
   for(let i=history.length-1;i>=0;i--){ if(history[i]===1) streak++; else break; }
   return streak;
 }
-function toggleHabitDay(hi, di){
-  habits[hi].history[di] = habits[hi].history[di]?0:1;
+async function toggleHabitDay(hi, di){
+  habits[hi].history[di] = habits[hi].history[di]?0:1; // update UI immediately
   renderHabits();
+  try{
+    const updated = await apiSend(`/habits/${habits[hi].id}/toggle`, 'PATCH', {dayIndex: di});
+    habits[hi].history = updated.history;
+    renderHabits();
+  }catch(err){
+    console.error('Failed to save habit toggle to backend', err);
+  }
 }
 function renderHabits(){
   const list = document.getElementById('habitList');
@@ -567,7 +625,7 @@ function toggleListening(){
   };
   recognizer.start();
 }
-function handleVoiceCommand(text){
+async function handleVoiceCommand(text){
   const lower = text.toLowerCase();
   let importance = 2;
   if(lower.includes('high importance')) importance = 3;
@@ -585,9 +643,17 @@ function handleVoiceCommand(text){
     hoursAhead = Math.max(0.5,(target-new Date())/3600000);
   }
   if(!title){ title='Voice task'; }
-  tasks.push({id:nextId++, title: title.charAt(0).toUpperCase()+title.slice(1), deadline: offsetNow(hoursAhead), importance, completed:false});
+  const finalTitle = title.charAt(0).toUpperCase()+title.slice(1);
+  const deadline = offsetNow(hoursAhead);
+  try{
+    const saved = await apiSend('/tasks', 'POST', {title: finalTitle, deadline: deadline.toISOString(), importance});
+    tasks.push({...saved, deadline: new Date(saved.deadline)});
+  }catch(err){
+    console.error(err);
+    tasks.push({id:Date.now(), title:finalTitle, deadline, importance, completed:false});
+  }
   renderAll();
-  speak(`Added "${title}" with ${['low','medium','high'][importance-1]} importance, due in about ${Math.round(hoursAhead)} hours.`);
+  speak(`Added "${finalTitle}" with ${['low','medium','high'][importance-1]} importance, due in about ${Math.round(hoursAhead)} hours.`);
 }
 
 /* ============ FEATURE 7: AUTONOMOUS TASK PLANNING & EXECUTION ============ */
@@ -617,12 +683,15 @@ function renderAll(){
   renderTasks();
   renderHabits();
 }
-// seed a sensible default deadline value in the input
-document.getElementById('taskDeadline').value = toLocalInput(offsetNow(6));
-renderAll();
-renderReminders();
-renderRecommendations();
-buildSchedule();
+async function init(){
+  document.getElementById('taskDeadline').value = toLocalInput(offsetNow(6));
+  await Promise.all([loadTasks(), loadHabits()]);
+  renderAll();
+  renderReminders();
+  renderRecommendations();
+  buildSchedule();
+}
+init();
 setInterval(renderTasks, 30000); // keep urgency scores fresh
 </script>
 </body>
