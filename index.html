@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Last-Minute — AI Deadline Rescue</title>
+<style>
+  :root{
+    --ink:#13151c;
+    --ink-2:#1b1e28;
+    --paper:#f4f1ea;
+    --amber:#ff6b35;
+    --teal:#2ec4b6;
+    --slate:#7b8190;
+    --line:rgba(244,241,234,0.12);
+    --danger:#ff4d6d;
+    --font-display:"Spectral", Georgia, serif;
+    --font-body:"Inter", system-ui, sans-serif;
+    --font-mono:"JetBrains Mono", "Courier New", monospace;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:var(--amber);color:var(--ink);}
+
+  /* ---------- layout shell ---------- */
+  .app{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+
+  header.top{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:28px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .mark{
+    width:30px;height:30px;border-radius:7px;
+    background:linear-gradient(135deg,var(--amber),var(--danger));
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-weight:600;font-size:13px;color:var(--ink);
+  }
+  .brand .name{font-family:var(--font-display);font-weight:600;font-size:18px;letter-spacing:0.2px;}
+  .brand .name small{display:block;font-family:var(--font-mono);font-size:10px;color:var(--slate);letter-spacing:1.5px;text-transform:uppercase;font-weight:400;margin-top:2px;}
+
+  .clock{
+    font-family:var(--font-mono);color:var(--teal);font-size:13px;
+    border:1px solid var(--line);padding:6px 12px;border-radius:20px;
+    display:flex;gap:8px;align-items:center;
+  }
+  .clock::before{content:"●";color:var(--teal);font-size:8px;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+  /* hero */
+  .hero{margin-bottom:36px;}
+  .hero h1{
+    font-family:var(--font-display);font-size:clamp(28px,5vw,42px);
+    font-weight:700;line-height:1.05;margin:0 0 10px;
+  }
+  .hero h1 em{color:var(--amber);font-style:normal;}
+  .hero p{color:var(--slate);font-size:15px;max-width:560px;line-height:1.55;margin:0;}
+
+  /* tabs */
+  .tabs{
+    display:flex;gap:4px;overflow-x:auto;margin:28px 0 20px;
+    border-bottom:1px solid var(--line);padding-bottom:0;
+  }
+  .tab{
+    font-family:var(--font-mono);font-size:11.5px;letter-spacing:0.5px;text-transform:uppercase;
+    color:var(--slate);background:none;border:none;padding:10px 14px;cursor:pointer;
+    white-space:nowrap;position:relative;transition:color .2s;
+  }
+  .tab:hover{color:var(--paper);}
+  .tab.active{color:var(--amber);}
+  .tab.active::after{
+    content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;background:var(--amber);
+  }
+
+  .panel{display:none;animation:fadein .25s ease;}
+  .panel.active{display:block;}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .card{
+    background:var(--ink-2);border:1px solid var(--line);border-radius:14px;
+    padding:20px;margin-bottom:16px;
+  }
+  .card h2{
+    font-family:var(--font-display);font-size:16px;font-weight:600;margin:0 0 4px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .card .sub{color:var(--slate);font-size:12.5px;margin:0 0 16px;}
+  .eyebrow{font-family:var(--font-mono);font-size:10.5px;color:var(--teal);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;display:block;}
+
+  /* forms */
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  input,select,textarea{
+    background:var(--ink);border:1px solid var(--line);color:var(--paper);
+    border-radius:8px;padding:9px 11px;font-family:var(--font-body);font-size:13.5px;
+    outline:none;transition:border-color .15s;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--amber);}
+  input[type=text]{flex:2;min-width:140px;}
+  input[type=datetime-local]{flex:1;min-width:160px;}
+  select{flex:1;min-width:110px;}
+  button.primary{
+    background:var(--amber);color:var(--ink);border:none;border-radius:8px;
+    padding:9px 16px;font-weight:600;font-size:13.5px;cursor:pointer;transition:transform .12s,filter .12s;
+    font-family:var(--font-body);
+  }
+  button.primary:hover{filter:brightness(1.08);}
+  button.primary:active{transform:scale(.97);}
+  button.ghost{
+    background:none;border:1px solid var(--line);color:var(--slate);border-radius:8px;
+    padding:7px 12px;font-size:12px;cursor:pointer;font-family:var(--font-mono);
+  }
+  button.ghost:hover{border-color:var(--teal);color:var(--teal);}
+
+  /* task list */
+  .task{
+    display:flex;align-items:center;gap:12px;padding:12px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .task:last-child{border-bottom:none;}
+  .task .urg{
+    width:8px;height:38px;border-radius:4px;flex-shrink:0;
+  }
+  .urg.critical{background:var(--danger);}
+  .urg.high{background:var(--amber);}
+  .urg.medium{background:#e8c468;}
+  .urg.low{background:var(--teal);}
+  .task .info{flex:1;min-width:0;}
+  .task .info .title{font-size:14px;font-weight:500;}
+  .task .info .meta{font-size:11.5px;color:var(--slate);font-family:var(--font-mono);margin-top:2px;}
+  .task .score{
+    font-family:var(--font-mono);font-size:11px;color:var(--ink);
+    background:var(--paper);padding:3px 8px;border-radius:20px;font-weight:600;
+    flex-shrink:0;
+  }
+  .task .done-btn{
+    width:26px;height:26px;border-radius:50%;border:1.5px solid var(--slate);
+    background:none;cursor:pointer;flex-shrink:0;
+  }
+  .task .done-btn:hover{border-color:var(--teal);}
+  .task.completed .info .title{text-decoration:line-through;color:var(--slate);}
+  .task.completed .done-btn{background:var(--teal);border-color:var(--teal);}
+
+  .empty{color:var(--slate);font-size:13px;text-align:center;padding:30px 0;font-style:italic;}
+
+  /* recommendation feed */
+  .reco{
+    display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);align-items:flex-start;
+  }
+  .reco:last-child{border-bottom:none;}
+  .reco .icon{font-size:16px;line-height:1.4;}
+  .reco .txt{font-size:13px;line-height:1.5;}
+  .reco .txt b{color:var(--amber);}
+
+  /* schedule / calendar */
+  .day-grid{display:flex;flex-direction:column;gap:6px;}
+  .slot{
+    display:flex;gap:12px;align-items:center;padding:9px 12px;background:var(--ink);
+    border-radius:8px;border:1px solid var(--line);
+  }
+  .slot .time{font-family:var(--font-mono);font-size:12px;color:var(--teal);width:88px;flex-shrink:0;}
+  .slot .what{font-size:13px;flex:1;}
+  .slot.free{opacity:.45;}
+  .slot.free .what{font-style:italic;color:var(--slate);}
+
+  /* habits */
+  .habit{
+    display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);
+  }
+  .habit:last-child{border-bottom:none;}
+  .habit .name{flex:1;font-size:13.5px;}
+  .habit .streak{
+    font-family:var(--font-mono);font-size:11px;color:var(--amber);min-width:64px;text-align:right;
+  }
+  .dots{display:flex;gap:4px;}
+  .dot{
+    width:16px;height:16px;border-radius:4px;background:var(--ink);border:1px solid var(--line);
+    cursor:pointer;transition:.15s;
+  }
+  .dot.on{background:var(--teal);border-color:var(--teal);}
+
+  /* voice */
+  .voice-stage{
+    display:flex;flex-direction:column;align-items:center;gap:16px;padding:30px 10px;
+  }
+  .mic-btn{
+    width:78px;height:78px;border-radius:50%;border:none;cursor:pointer;
+    background:radial-gradient(circle at 35% 30%,#ff8b5e,var(--amber));
+    box-shadow:0 0 0 0 rgba(255,107,53,.5);
+    display:flex;align-items:center;justify-content:center;font-size:28px;
+    transition:box-shadow .3s;
+  }
+  .mic-btn.listening{animation:ringpulse 1.4s infinite;}
+  @keyframes ringpulse{
+    0%{box-shadow:0 0 0 0 rgba(255,107,53,.55);}
+    70%{box-shadow:0 0 0 18px rgba(255,107,53,0);}
+    100%{box-shadow:0 0 0 0 rgba(255,107,53,0);}
+  }
+  .voice-transcript{
+    font-family:var(--font-mono);font-size:13px;color:var(--paper);min-height:20px;text-align:center;
+  }
+  .voice-reply{
+    font-size:14px;color:var(--teal);text-align:center;max-width:420px;line-height:1.5;min-height:20px;
+  }
+  .voice-hint{color:var(--slate);font-size:11.5px;text-align:center;}
+
+  /* autoplan */
+  .autoplan-output{
+    background:var(--ink);border-radius:10px;padding:14px;border:1px dashed var(--line);
+    font-family:var(--font-mono);font-size:12.5px;line-height:1.8;color:var(--paper);white-space:pre-wrap;
+  }
+
+  footer{
+    text-align:center;color:var(--slate);font-size:11px;font-family:var(--font-mono);
+    margin-top:40px;letter-spacing:.5px;
+  }
+
+  @media (max-width:520px){
+    .row{flex-direction:column;}
+    input[type=text],input[type=datetime-local],select{width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark">LM</div>
+      <div class="name">Last-Minute<small>Vibe2Ship · AI Deadline Rescue</small></div>
+    </div>
+    <div class="clock" id="liveClock">--:--:--</div>
+  </header>
+
+  <div class="hero">
+    <h1>Stop missing deadlines.<br><em>Start finishing things.</em></h1>
+    <p>An AI companion that doesn't just remind you — it ranks what matters, finds you time to do it, nudges you before it's too late, and tells you exactly what to do next.</p>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="tasks">① Prioritize</button>
+    <button class="tab" data-tab="schedule">② Schedule</button>
+    <button class="tab" data-tab="reminders">③ Reminders</button>
+    <button class="tab" data-tab="reco">④ Recommendations</button>
+    <button class="tab" data-tab="habits">⑤ Habits</button>
+    <button class="tab" data-tab="voice">⑥ Voice</button>
+    <button class="tab" data-tab="autoplan">⑦ Autopilot</button>
+  </nav>
+
+  <!-- 1. INTELLIGENT TASK PRIORITIZATION -->
+  <section class="panel active" id="panel-tasks">
+    <div class="card">
+      <span class="eyebrow">Feature 01</span>
+      <h2>🎯 Intelligent Task Prioritization</h2>
+      <p class="sub">Every task gets an urgency score from deadline proximity × importance. The list reorders itself live.</p>
+      <div class="row">
+        <input type="text" id="taskTitle" placeholder="e.g. Submit tax return">
+        <input type="datetime-local" id="taskDeadline">
+        <select id="taskImportance">
+          <option value="3">High importance</option>
+          <option value="2" selected>Medium importance</option>
+          <option value="1">Low importance</option>
+        </select>
+        <button class="primary" onclick="addTask()">Add task</button>
+      </div>
+      <div id="taskList"></div>
+    </div>
+  </section>
+
+  <!-- 2. AI SCHEDULING -->
+  <section class="panel" id="panel-schedule">
+    <div class="card">
+      <span class="eyebrow">Feature 02</span>
+      <h2>🗓️ AI-Powered Scheduling + Calendar Integration</h2>
+      <p class="sub">Claude-style logic slots your top tasks into open gaps in today's calendar, working backward from each deadline.</p>
+      <button class="ghost" onclick="buildSchedule()">↻ Re-plan today</button>
+      <div class="day-grid" id="dayGrid" style="margin-top:14px;"></div>
+    </div>
+  </section>
+
+  <!-- 3. CONTEXT-AWARE REMINDERS -->
+  <section class="panel" id="panel-reminders">
+    <div class="card">
+      <span class="eyebrow">Feature 03</span>
+      <h2>🔔 Context-Aware Reminders</h2>
+      <p class="sub">Reminders escalate in tone and frequency as a deadline closes in — not just one flat alert.</p>
+      <div id="reminderFeed"></div>
+    </div>
+  </section>
+
+  <!-- 4. PERSONALIZED RECOMMENDATIONS -->
+  <section class="panel" id="panel-reco">
+    <div class="card">
+      <span class="eyebrow">Feature 04</span>
+      <h2>💡 Personalized Productivity Recommendations</h2>
+      <p class="sub">Generated from your current task load, deadlines, and habit streaks.</p>
+      <div id="recoFeed"></div>
+    </div>
+  </section>
+
+  <!-- 5. GOALS & HABITS -->
+  <section class="panel" id="panel-habits">
+    <div class="card">
+      <span class="eyebrow">Feature 05</span>
+      <h2>📈 Goal & Habit Tracking</h2>
+      <p class="sub">Tap a day to mark it done. Streaks build the case that small daily action beats last-minute panic.</p>
+      <div id="habitList"></div>
+    </div>
+  </section>
+
+  <!-- 6. VOICE -->
+  <section class="panel" id="panel-voice">
+    <div class="card">
+      <span class="eyebrow">Feature 06</span>
+      <h2>🎙️ Voice-Enabled Assistance</h2>
+      <p class="sub">Speak a task naturally — "remind me to call the bank tomorrow at 5pm" — and it's added and spoken back to you.</p>
+      <div class="voice-stage">
+        <button class="mic-btn" id="micBtn" onclick="toggleListening()">🎤</button>
+        <div class="voice-transcript" id="voiceTranscript">Tap the mic and speak…</div>
+        <div class="voice-reply" id="voiceReply"></div>
+        <div class="voice-hint">Uses your browser's built-in speech recognition. Try: "remind me to email the client today at 6pm, high importance"</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. AUTONOMOUS PLANNING -->
+  <section class="panel" id="panel-autoplan">
+    <div class="card">
+      <span class="eyebrow">Feature 07</span>
+      <h2>🤖 Autonomous Task Planning & Execution</h2>
+      <p class="sub">One tap: the agent reviews every open task and writes the exact order of execution for the rest of today.</p>
+      <button class="primary" onclick="runAutopilot()">Plan my day for me</button>
+      <div class="autoplan-output" id="autoplanOutput" style="margin-top:14px;">Press the button — the agent will think through your task list and hand back a step-by-step plan.</div>
+    </div>
+  </section>
+
+  <footer>BUILT FOR CODINGNINJAS × GOOGLE FOR DEVELOPERS — VIBE2SHIP</footer>
+</div>
+
+<script>
+/* ---------------- shared state (in-memory, demo only) ---------------- */
+let tasks = [
+  {id:1, title:"Finish hackathon problem statement review", deadline: offsetNow(2), importance:3, completed:false},
+  {id:2, title:"Pay electricity bill", deadline: offsetNow(20), importance:2, completed:false},
+  {id:3, title:"Reply to internship interview email", deadline: offsetNow(5), importance:3, completed:false},
+];
+let nextId = 4;
+
+let habits = [
+  {name:"Review tasks every morning", history:[1,1,0,1,1,0,1]},
+  {name:"No new tasks after 9pm", history:[1,0,1,1,0,0,1]},
+  {name:"Inbox zero", history:[0,1,1,0,1,1,1]},
+];
+
+function offsetNow(hours){
+  let d = new Date(Date.now() + hours*3600*1000);
+  d.setSeconds(0); d.setMilliseconds(0);
+  return d;
+}
+function toLocalInput(d){
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* ---------------- tabs ---------------- */
+document.getElementById('tabs').addEventListener('click', e=>{
+  const btn = e.target.closest('.tab');
+  if(!btn) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  if(btn.dataset.tab==='schedule') buildSchedule();
+  if(btn.dataset.tab==='reminders') renderReminders();
+  if(btn.dataset.tab==='reco') renderRecommendations();
+});
+
+/* ---------------- live clock ---------------- */
+function tickClock(){
+  document.getElementById('liveClock').textContent = new Date().toLocaleTimeString();
+}
+setInterval(tickClock,1000); tickClock();
+
+/* ============ FEATURE 1: INTELLIGENT TASK PRIORITIZATION ============ */
+function urgencyScore(task){
+  const hoursLeft = (new Date(task.deadline) - new Date())/3600000;
+  const timeFactor = hoursLeft <= 0 ? 100 : Math.max(0, 100 - hoursLeft); // closer deadline = higher
+  const score = timeFactor*0.7 + task.importance*10*0.3;
+  return Math.round(score);
+}
+function urgencyTier(score){
+  if(score>=70) return 'critical';
+  if(score>=45) return 'high';
+  if(score>=20) return 'medium';
+  return 'low';
+}
+function addTask(){
+  const title = document.getElementById('taskTitle').value.trim();
+  const deadline = document.getElementById('taskDeadline').value;
+  const importance = parseInt(document.getElementById('taskImportance').value);
+  if(!title || !deadline){ alert('Add a title and deadline.'); return; }
+  tasks.push({id:nextId++, title, deadline:new Date(deadline), importance, completed:false});
+  document.getElementById('taskTitle').value='';
+  document.getElementById('taskDeadline').value='';
+  renderAll();
+}
+function toggleComplete(id){
+  const t = tasks.find(t=>t.id===id);
+  if(t) t.completed = !t.completed;
+  renderAll();
+}
+function renderTasks(){
+  const list = document.getElementById('taskList');
+  const sorted = [...tasks].sort((a,b)=> urgencyScore(b)-urgencyScore(a));
+  if(sorted.length===0){ list.innerHTML = '<div class="empty">No tasks yet — add one above.</div>'; return; }
+  list.innerHTML = sorted.map(t=>{
+    const score = urgencyScore(t);
+    const tier = urgencyTier(score);
+    const hrs = (new Date(t.deadline)-new Date())/3600000;
+    const timeLabel = hrs<0 ? 'overdue' : hrs<24 ? Math.round(hrs)+'h left' : Math.round(hrs/24)+'d left';
+    return `<div class="task ${t.completed?'completed':''}">
+      <div class="urg ${tier}"></div>
+      <div class="info">
+        <div class="title">${escapeHtml(t.title)}</div>
+        <div class="meta">${timeLabel} · ${['','low','medium','high'][t.importance]} importance</div>
+      </div>
+      <div class="score">${score}</div>
+      <button class="done-btn" onclick="toggleComplete(${t.id})"></button>
+    </div>`;
+  }).join('');
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* ============ FEATURE 2: AI SCHEDULING + CALENDAR ============ */
+function buildSchedule(){
+  const grid = document.getElementById('dayGrid');
+  const openTasks = [...tasks].filter(t=>!t.completed).sort((a,b)=>urgencyScore(b)-urgencyScore(a));
+  // simple simulated calendar with fixed busy blocks + free slots from 9-18
+  const busy = [
+    {start:10, end:11, label:'Team standup'},
+    {start:13, end:14, label:'Lunch'},
+    {start:16, end:16.5, label:'1:1 sync'},
+  ];
+  let slots = [];
+  for(let h=9; h<18; h+=1){
+    const conflict = busy.find(b=> h>=b.start && h<b.end);
+    if(conflict){ slots.push({hour:h,label:conflict.label,free:false}); continue; }
+    slots.push({hour:h,label:null,free:true});
+  }
+  // assign top tasks to free slots, biased to ones with closer deadlines
+  let queue = [...openTasks];
+  slots = slots.map(s=>{
+    if(s.free && queue.length){
+      const t = queue.shift();
+      return {...s, free:false, label:'▸ '+t.title, assigned:true};
+    }
+    return s;
+  });
+  grid.innerHTML = slots.map(s=>{
+    const timeStr = `${String(s.hour).padStart(2,'0')}:00`;
+    return `<div class="slot ${s.free?'free':''}">
+      <div class="time">${timeStr}</div>
+      <div class="what">${s.label ? s.label : 'Open — nothing scheduled'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ FEATURE 3: CONTEXT-AWARE REMINDERS ============ */
+function renderReminders(){
+  const feed = document.getElementById('reminderFeed');
+  const open = tasks.filter(t=>!t.completed);
+  if(open.length===0){ feed.innerHTML = '<div class="empty">Nothing pending — no reminders to show.</div>'; return; }
+  feed.innerHTML = open.map(t=>{
+    const hrs = (new Date(t.deadline)-new Date())/3600000;
+    let msg, icon;
+    if(hrs<0){ icon='🔴'; msg=`<b>Overdue.</b> "${escapeHtml(t.title)}" was due ${Math.abs(Math.round(hrs))}h ago. Reschedule or close it now.`; }
+    else if(hrs<3){ icon='🟠'; msg=`<b>Final call.</b> "${escapeHtml(t.title)}" is due in ${Math.round(hrs)}h. This is the last nudge before it's late.`; }
+    else if(hrs<24){ icon='🟡'; msg=`<b>Heads up.</b> "${escapeHtml(t.title)}" is due today in ${Math.round(hrs)}h — worth blocking time now.`; }
+    else { icon='🟢'; msg=`<b>On track.</b> "${escapeHtml(t.title)}" isn't due for ${Math.round(hrs/24)} day(s). A gentle check-in, no action needed yet.`; }
+    return `<div class="reco"><div class="icon">${icon}</div><div class="txt">${msg}</div></div>`;
+  }).join('');
+}
+
+/* ============ FEATURE 4: PERSONALIZED RECOMMENDATIONS ============ */
+function renderRecommendations(){
+  const feed = document.getElementById('recoFeed');
+  const open = tasks.filter(t=>!t.completed);
+  const critical = open.filter(t=>urgencyTier(urgencyScore(t))==='critical').length;
+  const recos = [];
+  if(critical>0) recos.push({icon:'⚡', html:`You have <b>${critical} critical task${critical>1?'s':''}</b>. Tackle these before opening anything else today.`});
+  if(open.length>5) recos.push({icon:'🧹', html:`Your list has <b>${open.length} open tasks</b> — consider deferring low-importance ones to next week so focus doesn't fragment.`});
+  const lowStreak = habits.find(h=> h.history.slice(-3).every(v=>v===0));
+  if(lowStreak) recos.push({icon:'📉', html:`<b>"${lowStreak.name}"</b> has slipped for 3 days straight. Restarting today protects the streak from resetting fully.`});
+  const morningHabit = habits.find(h=>h.name.toLowerCase().includes('morning'));
+  if(morningHabit && morningHabit.history[morningHabit.history.length-1]===1) recos.push({icon:'☀️', html:`Nice — you reviewed tasks this morning. Days that start with a review finish <b>~30% more tasks</b> on average.`});
+  recos.push({icon:'🧠', html:`Try timeboxing your top task for <b>25 minutes</b> uninterrupted — the highest-scoring item rarely needs more than a focused sprint to make real progress.`});
+  feed.innerHTML = recos.map(r=>`<div class="reco"><div class="icon">${r.icon}</div><div class="txt">${r.html}</div></div>`).join('');
+}
+
+/* ============ FEATURE 5: GOAL & HABIT TRACKING ============ */
+function calcStreak(history){
+  let streak=0;
+  for(let i=history.length-1;i>=0;i--){ if(history[i]===1) streak++; else break; }
+  return streak;
+}
+function toggleHabitDay(hi, di){
+  habits[hi].history[di] = habits[hi].history[di]?0:1;
+  renderHabits();
+}
+function renderHabits(){
+  const list = document.getElementById('habitList');
+  list.innerHTML = habits.map((h,hi)=>{
+    const dots = h.history.map((v,di)=>`<div class="dot ${v?'on':''}" onclick="toggleHabitDay(${hi},${di})" title="day ${di+1}"></div>`).join('');
+    return `<div class="habit">
+      <div class="name">${escapeHtml(h.name)}</div>
+      <div class="dots">${dots}</div>
+      <div class="streak">🔥 ${calcStreak(h.history)}d</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ FEATURE 6: VOICE-ENABLED ASSISTANCE ============ */
+let recognizing = false;
+let recognizer = null;
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function speak(text){
+  document.getElementById('voiceReply').textContent = text;
+  if('speechSynthesis' in window){
+    const u = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.speak(u);
+  }
+}
+function toggleListening(){
+  if(!SpeechRecognition){
+    document.getElementById('voiceTranscript').textContent = 'Speech recognition is not supported in this browser.';
+    return;
+  }
+  if(recognizing){ recognizer.stop(); return; }
+  recognizer = new SpeechRecognition();
+  recognizer.lang='en-US';
+  recognizer.interimResults=false;
+  recognizer.onstart = ()=>{
+    recognizing=true;
+    document.getElementById('micBtn').classList.add('listening');
+    document.getElementById('voiceTranscript').textContent='Listening…';
+  };
+  recognizer.onend = ()=>{
+    recognizing=false;
+    document.getElementById('micBtn').classList.remove('listening');
+  };
+  recognizer.onresult = (e)=>{
+    const transcript = e.results[0][0].transcript;
+    document.getElementById('voiceTranscript').textContent = '"'+transcript+'"';
+    handleVoiceCommand(transcript);
+  };
+  recognizer.onerror = (e)=>{
+    document.getElementById('voiceTranscript').textContent = 'Mic error: '+e.error;
+  };
+  recognizer.start();
+}
+function handleVoiceCommand(text){
+  const lower = text.toLowerCase();
+  let importance = 2;
+  if(lower.includes('high importance')) importance = 3;
+  if(lower.includes('low importance')) importance = 1;
+  let title = text.replace(/remind me to/i,'').replace(/(today|tomorrow).*$/i,'').replace(/(high|medium|low) importance/i,'').trim();
+  let hoursAhead = 4;
+  if(lower.includes('tomorrow')) hoursAhead = 20;
+  const timeMatch = lower.match(/(\d{1,2})\s?(am|pm)/);
+  if(timeMatch){
+    let hr = parseInt(timeMatch[1]);
+    if(timeMatch[2]==='pm' && hr<12) hr+=12;
+    const target = new Date();
+    if(lower.includes('tomorrow')) target.setDate(target.getDate()+1);
+    target.setHours(hr,0,0,0);
+    hoursAhead = Math.max(0.5,(target-new Date())/3600000);
+  }
+  if(!title){ title='Voice task'; }
+  tasks.push({id:nextId++, title: title.charAt(0).toUpperCase()+title.slice(1), deadline: offsetNow(hoursAhead), importance, completed:false});
+  renderAll();
+  speak(`Added "${title}" with ${['low','medium','high'][importance-1]} importance, due in about ${Math.round(hoursAhead)} hours.`);
+}
+
+/* ============ FEATURE 7: AUTONOMOUS TASK PLANNING & EXECUTION ============ */
+function runAutopilot(){
+  const open = [...tasks].filter(t=>!t.completed).sort((a,b)=>urgencyScore(b)-urgencyScore(a));
+  const out = document.getElementById('autoplanOutput');
+  if(open.length===0){ out.textContent='Nothing open. The agent has nothing to plan — go enjoy the silence.'; return; }
+  out.textContent = 'Agent is thinking…';
+  let now = new Date();
+  let lines = [`AGENT PLAN — generated ${now.toLocaleTimeString()}\n`];
+  let cursor = new Date(now);
+  open.forEach((t,i)=>{
+    const hrsLeft = (new Date(t.deadline)-now)/3600000;
+    const blockMins = t.importance>=3 ? 45 : t.importance===2 ? 30 : 20;
+    const start = new Date(cursor);
+    const end = new Date(cursor.getTime()+blockMins*60000);
+    const risk = hrsLeft<2 ? '⚠ HIGH RISK — start immediately' : hrsLeft<8 ? '⏳ time-sensitive' : 'on schedule';
+    lines.push(`${i+1}. ${start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}–${end.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}  ${t.title}  [${risk}]`);
+    cursor = new Date(end.getTime()+5*60000); // 5 min buffer
+  });
+  lines.push(`\nReasoning: tasks ordered by urgency score (deadline proximity + importance). Buffers of 5 min added between blocks. Re-run anytime a deadline or task list changes.`);
+  setTimeout(()=>{ out.textContent = lines.join('\n'); }, 500);
+}
+
+/* ---------------- init ---------------- */
+function renderAll(){
+  renderTasks();
+  renderHabits();
+}
+// seed a sensible default deadline value in the input
+document.getElementById('taskDeadline').value = toLocalInput(offsetNow(6));
+renderAll();
+renderReminders();
+renderRecommendations();
+buildSchedule();
+setInterval(renderTasks, 30000); // keep urgency scores fresh
+</script>
+</body>
+</html>
